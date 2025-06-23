@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useKeenSlider } from 'keen-slider/react'
+import { useKeenSlider, KeenSliderInstance } from 'keen-slider/react'
 import 'keen-slider/keen-slider.min.css'
 
 type Video = {
@@ -24,32 +24,25 @@ export default function KeenCarousel({
   videos: Video[]
   analysisMap: Record<string, any>
   analyzingId: string | null
-  onAnalyze: (video: Video) => void
+  onAnalyze: (video: Video) => Promise<void>
 }) {
-  const [ref, slider] = useKeenSlider<HTMLDivElement>({
+  const [ref, sliderRef] = useKeenSlider<HTMLDivElement>({
     loop: true,
-    slides: {
-      perView: 1,
-      spacing: 10,
-    },
+    slides: { perView: 1, spacing: 10 },
   })
-
   const sliderContainerRef = useRef<HTMLDivElement>(null)
-  const [autoplay, setAutoplay] = useState(true)
+  const [autoplay] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    const instance = slider.current
-    console.log('slider.current', slider.current) 
+    const instance = sliderRef.current
     if (!instance) return
 
     const start = () => {
       if (!intervalRef.current) {
         intervalRef.current = setInterval(() => {
-          if (instance.track?.details) {
-            instance.next()
-          }
+          if (instance.track?.details) instance.next()
         }, 3000)
       }
     }
@@ -63,7 +56,7 @@ export default function KeenCarousel({
 
     instance.on('created', () => {
       setIsReady(true)
-      if (autoplay) start()
+      start()
     })
 
     const node = sliderContainerRef.current
@@ -75,26 +68,27 @@ export default function KeenCarousel({
       node?.removeEventListener('mouseenter', stop)
       node?.removeEventListener('mouseleave', start)
     }
-  }, [slider.current, autoplay])
-
+  }, [sliderRef])
+  
   const handlePrev = () => {
-    const instance = slider.current
-    if (isReady && instance?.track?.details) {
-      instance.prev()
+    const instance = sliderRef.current
+    if (instance) {
+      const currentIdx = instance.track.details.rel
+      instance.moveToIdx(currentIdx - 1)
     }
   }
 
   const handleNext = () => {
-    const instance = slider.current
-    if (isReady && instance?.track?.details) {
-      instance.next()
+    const instance = sliderRef.current
+    if (instance) {
+      const currentIdx = instance.track.details.rel
+      instance.moveToIdx(currentIdx + 1)
     }
   }
-  
   return (
     <div ref={sliderContainerRef} className="relative">
         <button
-          onClick={() => slider.current?.prev()}
+          onClick={handlePrev}
           className="absolute left-[-20] top-1/2 -translate-y-1/2 z-30
                     w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center
                     border border-white/40 backdrop-blur-md
@@ -108,7 +102,7 @@ export default function KeenCarousel({
           </svg>
         </button>
         <button
-          onClick={() => slider.current?.next()}
+          onClick={handleNext}
           className="absolute right-[-20] top-1/2 -translate-y-1/2 z-30
                     w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center
                     border border-white/40 backdrop-blur-md
@@ -147,9 +141,9 @@ export default function KeenCarousel({
               ) : (
                 <button
                   className="w-full mt-4 py-3 rounded-full bg-gradient-to-br from-lime-500 via-yellow-400 to-lime-400 text-black text-lg font-extrabold tracking-wide shadow-lg hover:scale-105 hover:brightness-110 transition-transform"
-                  onClick={() => {
+                  onClick={async () => {
                     console.log('分析按鈕被點擊', video.videoId)
-                    onAnalyze(video)
+                    await onAnalyze(video)
                   }}
                   disabled={analyzingId === video.videoId}
                 >
@@ -159,16 +153,6 @@ export default function KeenCarousel({
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Autoplay 切換按鈕 */}
-      <div className="mt-4 flex justify-center">
-        <button
-          onClick={() => setAutoplay((a) => !a)}
-          className="min-w-[140px] px-5 py-3 rounded-lg font-semibold text-white hover:text-white/80 shadow-md transition duration-200"
-        >
-          {autoplay ? '暫停輪播' : '自動輪播'}
-        </button>
       </div>
     </div>
   )

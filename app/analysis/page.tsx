@@ -78,6 +78,22 @@ export default function AddPage() {
           {loading ? '載入中…' : '取得資料'}
         </button>
       </div>
+      <p>直接複製 YouTube 播放清單網址 (music playlist)</p>
+      <div className="flex items-center gap-2 mb-6 bg-gray-100/80 p-3 rounded-lg text-sm text-gray-700">
+        <span className="truncate">
+          https://www.youtube.com/playlist?list=PLbpi6ZahtOH7DrxWUmkwvsXnFeCfB5LUp
+        </span>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(
+              'https://www.youtube.com/playlist?list=PLbpi6ZahtOH7DrxWUmkwvsXnFeCfB5LUp'
+            )
+          }}
+          className="ml-auto px-3 py-1 bg-pink-500 text-white text-xs rounded hover:bg-pink-600 transition"
+        >
+          複製
+        </button>
+      </div>
       <div className="my-6 space-y-4">
         <KeenCarousel videos={videos} analysisMap={analysisMap} analyzingId={analyzingId} onAnalyze={handleAnalyze} />
       </div>
