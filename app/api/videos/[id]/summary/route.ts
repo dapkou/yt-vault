@@ -1,4 +1,3 @@
-// app/api/videos/[id]/summary/route.ts
 import { NextRequest } from 'next/server';
 import { fetchGeminiSummary } from '@/lib/gemini';
 
@@ -24,9 +23,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // 確保 fetchGeminiSummary 回傳的是 { summary, category, keywords }
   const result = await fetchGeminiSummary(title, description);
 
-  return new Response(JSON.stringify({ id, result }), {
+  return new Response(JSON.stringify(result), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });

@@ -20,15 +20,23 @@ export default function AddPage() {
   console.log('影片 ID:', video.videoId);
   try {
     setAnalyzingId(video.videoId);
-    const result = await summarizeYouTubeVideo(video.videoId);
+    const raw = await summarizeYouTubeVideo(video.videoId);
+
+    // 保證前端結構正確，即使是空的也要佔位
+    const result = {
+      summary: raw.summary ?? '',
+      category: raw.category ?? '',
+      keywords: Array.isArray(raw.keywords) ? raw.keywords : [],
+    };
+
     setAnalysisMap((prev) => ({ ...prev, [video.videoId]: result }));
   } catch (err) {
-      console.error(err);
-      alert(`分析失敗：${err}`);
+    console.error(err);
+    alert(`分析失敗：${err}`);
   } finally {
-      setAnalyzingId(null);
-    }
-  };
+    setAnalyzingId(null);
+  }
+};
   const handleFetch = async () => {
     setLoading(true)
     setVideos([])

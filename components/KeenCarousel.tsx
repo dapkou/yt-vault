@@ -1,7 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useKeenSlider } from 'keen-slider/react'
-import { useEffect, useRef } from 'react'
 import 'keen-slider/keen-slider.min.css'
 
 type Video = {
@@ -37,45 +36,61 @@ export default function KeenCarousel({
 
   const sliderContainerRef = useRef<HTMLDivElement>(null)
   const [autoplay, setAutoplay] = useState(true)
-  useEffect(() => {
-  let interval: ReturnType<typeof setInterval> | null = null
+  const [isReady, setIsReady] = useState(false)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const start = () => {
-    if (slider.current) {
-      interval = setInterval(() => {
-        // 安全呼叫 .next()，避免錯誤
-        if (slider.current) {
-          try {
-            slider.current.next()
-          } catch (err) {
-            console.warn('Keen slider.next() failed:', err)
+  useEffect(() => {
+    const instance = slider.current
+    console.log('slider.current', slider.current) 
+    if (!instance) return
+
+    const start = () => {
+      if (!intervalRef.current) {
+        intervalRef.current = setInterval(() => {
+          if (instance.track?.details) {
+            instance.next()
           }
-        }
-      }, 3000)
+        }, 3000)
+      }
+    }
+
+    const stop = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+
+    instance.on('created', () => {
+      setIsReady(true)
+      if (autoplay) start()
+    })
+
+    const node = sliderContainerRef.current
+    node?.addEventListener('mouseenter', stop)
+    node?.addEventListener('mouseleave', start)
+
+    return () => {
+      stop()
+      node?.removeEventListener('mouseenter', stop)
+      node?.removeEventListener('mouseleave', start)
+    }
+  }, [slider.current, autoplay])
+
+  const handlePrev = () => {
+    const instance = slider.current
+    if (isReady && instance?.track?.details) {
+      instance.prev()
     }
   }
 
-  const stop = () => {
-    if (interval) clearInterval(interval)
+  const handleNext = () => {
+    const instance = slider.current
+    if (isReady && instance?.track?.details) {
+      instance.next()
+    }
   }
-
-  if (slider.current) {
-    slider.current.on('created', () => {
-      start()
-    })
-  }
-
-  const node = sliderContainerRef.current
-  node?.addEventListener('mouseenter', stop)
-  node?.addEventListener('mouseleave', start)
-
-  return () => {
-    stop()
-    node?.removeEventListener('mouseenter', stop)
-    node?.removeEventListener('mouseleave', start)
-  }
-}, [slider, autoplay])
-
+  
   return (
     <div ref={sliderContainerRef} className="relative">
         <button
@@ -109,23 +124,13 @@ export default function KeenCarousel({
 
       <div ref={ref} className="keen-slider">
         {videos.map((video, idx) => (
-          <div
-            key={idx}
-            className="keen-slider__slide min-w-full px-4"
-          >
-            <div
-              className="relative border-4 border-lime-500 bg-gradient-to-br from-black via-zinc-900 to-black
-                        text-white rounded-2xl shadow-2xl p-6 transition-transform
-                        hover:scale-[1.03] hover:rotate-[-0.5deg] hover:shadow-neon"
-            >
-              {/* 影片縮圖 */}
+          <div key={idx} className="keen-slider__slide min-w-full px-4">
+            <div className="relative border-4 border-lime-500 bg-gradient-to-br from-black via-zinc-900 to-black text-white rounded-2xl shadow-2xl p-6 transition-transform hover:scale-[1.03] hover:rotate-[-0.5deg] hover:shadow-neon">
               <img
                 src={video.thumbnails?.high?.url}
                 alt={video.title}
                 className="w-full rounded-xl mb-4 border-2 border-white/20"
               />
-
-              {/* 標題 */}
               <h2 className="text-xl font-bold text-lime-400 mb-1">{video.title}</h2>
               <p className="text-sm text-lime-300 mb-2">頻道：{video.channelTitle}</p>
               <p className="text-sm text-white/80 line-clamp-2">{video.description}</p>
@@ -133,25 +138,19 @@ export default function KeenCarousel({
               {/* 分析結果 or 分析按鈕 */}
               {analysisMap[video.videoId] ? (
                 <div className="mt-4 bg-white/5 p-4 rounded-lg border border-white/10 text-sm space-y-1">
-                  <p>
-                    <span className="text-cyan-400 font-bold">摘要：</span>
-                    {analysisMap[video.videoId].summary}
-                  </p>
-                  <p>
-                    <span className="text-emerald-400 font-bold">分類：</span>
-                    {analysisMap[video.videoId].category}
-                  </p>
-                  <p>
-                    <span className="text-yellow-400 font-bold">關鍵字：</span>
-                    {analysisMap[video.videoId].keywords.join(', ')}
+                  <p><span className="text-cyan-400 font-bold">摘要：</span>{analysisMap[video.videoId].summary}</p>
+                  <p><span className="text-emerald-400 font-bold">分類：</span>{analysisMap[video.videoId].category}</p>
+                  <p><span className="text-yellow-400 font-bold">關鍵字：</span>
+                    {Array.isArray(analysisMap[video.videoId]?.keywords) ? analysisMap[video.videoId].keywords.join(', ') : '無'}
                   </p>
                 </div>
               ) : (
                 <button
-                  className="w-full mt-4 py-3 rounded-full bg-gradient-to-br from-lime-500 via-yellow-400 to-lime-400
-                            text-black text-lg font-extrabold tracking-wide shadow-lg
-                            hover:scale-105 hover:brightness-110 transition-transform"
-                  onClick={() => onAnalyze(video)}
+                  className="w-full mt-4 py-3 rounded-full bg-gradient-to-br from-lime-500 via-yellow-400 to-lime-400 text-black text-lg font-extrabold tracking-wide shadow-lg hover:scale-105 hover:brightness-110 transition-transform"
+                  onClick={() => {
+                    console.log('分析按鈕被點擊', video.videoId)
+                    onAnalyze(video)
+                  }}
                   disabled={analyzingId === video.videoId}
                 >
                   {analyzingId === video.videoId ? '分析中…' : 'Gemini 分析'}
