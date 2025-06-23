@@ -23,20 +23,22 @@ export const extractPlaylistId = (url: string): string | null => {
 //   return data.items?.[0]?.snippet ?? null
 // }
 export const fetchYouTubeVideoData = async (videoId: string) => {
-  const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`
-  )
-  const data = await res.json()
-  const item = data.items?.[0]
-  if (!item) return null
 
-  const snippet = item.snippet
-  return {
-    videoId: item.id,
-    title: snippet.title,
-    description: snippet.description,
-    channelTitle: snippet.channelTitle,
-    thumbnails: snippet.thumbnails
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`
+    )
+    const data = await res.json();
+
+    if (!data.items || data.items.length === 0) {
+      console.warn("影片資料不存在或無法取得", data);
+      return null;
+    }
+
+    return data.items[0].snippet;
+  } catch (error) {
+    console.error("取得影片資料時發生錯誤：", error);
+    return null;
   }
 }
 // 抓播放清單中所有影片（最多 20）
