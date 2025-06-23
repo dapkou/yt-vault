@@ -69,20 +69,20 @@ export default function KeenCarousel({
       node?.removeEventListener('mouseleave', start)
     }
   }, [sliderRef])
-  
-  const handlePrev = () => {
-    const instance = sliderRef.current
-    if (instance) {
-      const currentIdx = instance.track.details.rel
-      instance.moveToIdx(currentIdx - 1)
-    }
-  }
 
   const handleNext = () => {
     const instance = sliderRef.current
-    if (instance) {
-      const currentIdx = instance.track.details.rel
-      instance.moveToIdx(currentIdx + 1)
+    const details = instance?.track?.details
+    if (instance && details) {
+      instance.moveToIdx(details.rel + 1)
+    }
+  }
+
+  const handlePrev = () => {
+    const instance = sliderRef.current
+    const details = instance?.track?.details
+    if (instance && details) {
+      instance.moveToIdx(details.rel - 1)
     }
   }
   return (
