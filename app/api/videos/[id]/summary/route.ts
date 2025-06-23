@@ -8,19 +8,19 @@ export async function POST(req: NextRequest) {
   if (!title || !description) {
     return new Response(JSON.stringify({ error: 'Missing title or description' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  // 從 URL 中解析 [id]
+  // 從 URL 抓出 [id]
   const url = new URL(req.url);
-  const idMatch = url.pathname.match(/\/api\/videos\/([^/]+)\/summary/);
-  const id = idMatch?.[1];
+  const match = url.pathname.match(/\/api\/videos\/([^/]+)\/summary/);
+  const id = match?.[1];
 
   if (!id) {
-    return new Response(JSON.stringify({ error: 'Missing video id in URL' }), {
+    return new Response(JSON.stringify({ error: 'Invalid video ID' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
@@ -28,6 +28,6 @@ export async function POST(req: NextRequest) {
 
   return new Response(JSON.stringify({ id, result }), {
     status: 200,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
   });
 }
